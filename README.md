@@ -1,40 +1,40 @@
-# PowerShell Chocolatey Computer Setup
+# PowerShell Computer Setup
 
-This script installs Chocolatey if it is not already installed, then installs a predefined set of applications using Chocolatey. It also logs installation activity to `C:\Temp\ChocoInstall.log` and exits with a non-zero status if any package installation fails.
-
-## Features
-
-- Verifies the script is running as Administrator
-- Installs Chocolatey automatically when needed
-- Installs a configured list of applications
-- Skips selected packages when running on a VDI machine
-- Writes detailed logs to both the console and `C:\Temp\ChocoInstall.log`
-- Validates package installation before continuing
-- Returns an error code if any app fails to install
+This repository contains two elevated PowerShell scripts: `choco.ps1` installs a configured set of Chocolatey applications, and `admin-tools.ps1` installs selected Windows administration capabilities. Both scripts log their progress, skip items that are already installed, verify new installations, and return a non-zero exit code when an installation fails.
 
 ## Requirements
 
-- Windows 10, Windows 11, Windows Server 2019, or Windows Server 2022
-- PowerShell with Administrator privileges
-- Internet access to download Chocolatey and package installers
-- Execution policy permission for the current PowerShell session
+- Run the scripts in an elevated PowerShell session. Both use `#Requires -RunAsAdministrator` and also check administrator privileges.
+- `choco.ps1` supports Windows 10, Windows 11, Windows Server 2019, and Windows Server 2022. Internet access is needed to install Chocolatey and download packages.
+- `admin-tools.ps1` requires a Windows version and edition that provides the listed Windows capabilities. Windows may need access to Windows Update or a configured Features on Demand source to download capability payloads.
+- The current PowerShell process must allow the commands and execution policy required by the scripts.
 
-## Script Behavior
+## Chocolatey Setup
 
-The script performs the following steps:
+Run `choco.ps1` from an elevated PowerShell prompt:
 
-1. Creates the log directory if it does not exist
-2. Checks that the current user is an Administrator
-3. Detects whether Chocolatey is installed
-4. Installs Chocolatey if it is missing
-5. Reads the list of applications from the configuration section
-6. Installs each package using `choco install`
-7. Verifies each product was installed successfully
-8. Logs any failures and exits with status code `1` if needed
+```powershell
+.\choco.ps1
+```
 
-## Default Applications
+From another directory, invoke it by its full path:
 
-The script installs these packages by default:
+```powershell
+& "C:\path\to\powershell-choco-computer-setup\choco.ps1"
+```
+
+### What It Does
+
+1. Creates `C:\Temp` if it does not exist and checks administrator privileges.
+2. Checks whether `choco.exe` is available. If Chocolatey is missing, it temporarily sets the process execution policy to `Bypass`, enables TLS 1.2, downloads and runs Chocolatey's install script, refreshes the current process PATH, and verifies that Chocolatey is available.
+3. Checks the configured application list. Packages detected by `choco list` are logged as already installed and are not reinstalled.
+4. On a computer name matching the configured VDI pattern, skips applications listed in `$SkipApplications`.
+5. Installs remaining packages with `choco install -y --no-progress`, checks Chocolatey's exit code, and verifies each package after installation.
+6. Logs per-package failures, reports a summary, and exits with code `1` if any package installation or verification fails.
+
+### Default Applications
+
+The `$Applications` list in `choco.ps1` contains:
 
 - `keepass`
 - `omnissa-horizon-client`
@@ -48,42 +48,44 @@ The script installs these packages by default:
 - `vscode-kubernetes-tools`
 - `vscode-terraform`
 
-The following package is skipped on VDI machines:
+`omnissa-horizon-client` is in `$SkipApplications` and is skipped when the computer name matches the VDI pattern checked by the script. Edit `$Applications` to change the packages to install, and `$SkipApplications` to change the VDI exclusions.
 
-- `omnissa-horizon-client`
+### Chocolatey Log and Exit Codes
 
-## How to Run
+Logs are written to `C:\Temp\ChocoInstall.log` and to the console. Entries include timestamps, severity levels, and installation status.
 
-Open PowerShell as Administrator and run:
+- `0`: all configured packages were already installed, were installed and verified, or were intentionally skipped.
+- `1`: one or more package installations or verifications failed, or the script could not validate administrator privileges.
+
+## Windows Admin Tools
+
+Run `admin-tools.ps1` from an elevated PowerShell prompt:
 
 ```powershell
-.\choco.ps1
+.\admin-tools.ps1
 ```
 
-If you are running from another directory, use:
+The script checks each capability with `Get-WindowsCapability`. It skips capabilities already in the `Installed` state, installs the others with `Add-WindowsCapability`, then checks that each installation succeeded. Failures are recorded while the script continues through the list.
 
-```powershell
-& "C:\path\to\powershell-choco-computer-setup\choco.ps1"
-```
+### Capabilities
 
-## Logging
+The `$WindowsComponents` list in `admin-tools.ps1` includes:
 
-The script writes logs to:
+- Failover Cluster Management Tools
+- Active Directory Domain Services and Lightweight Directory Services Tools
+- DNS Server Tools
+- Group Policy Management Tools
+- Remote Access Management Tools
+- Server Manager Tools
+- Shielded VM Tools
+- Storage Migration Service Management Tools
+- Volume Activation Tools
 
-```text
-C:\Temp\ChocoInstall.log
-```
+Edit `$WindowsComponents` in `admin-tools.ps1` to change the capabilities managed by the script. Capability availability can vary by Windows version and edition.
 
-This log includes timestamps, log levels, and installation status for each action.
+### Admin Tools Log and Exit Codes
 
-## Notes
+Logs are written to `C:\Temp\AdminToolsInstall.log` and to the console. Entries include timestamps, severity levels, and the status of each capability.
 
-- The script uses the `#Requires -RunAsAdministrator` directive, so it will not run without elevated privileges.
-- Package names can be modified in the `$Applications` array at the top of the script.
-- Additional packages can be added or removed by editing that list.
-- The VDI skip list is controlled by `$SkipApplications`.
-
-## Exit Codes
-
-- `0` = all applications installed successfully
-- `1` = one or more package installations failed
+- `0`: all listed capabilities are installed or were already installed.
+- `1`: one or more capabilities failed to install or verify, or the script could not validate administrator privileges.
