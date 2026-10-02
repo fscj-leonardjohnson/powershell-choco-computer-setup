@@ -33,6 +33,7 @@ $Applications = @(
     "powershell-core",
     "python314",
     "git",
+    "gh",
     "vscode",
     "vscode-powershell",
     "vscode-python",
