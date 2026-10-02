@@ -25,7 +25,6 @@ $WindowsComponents = @(
 	"Rsat.GroupPolicy.Management.Tools~~~~0.0.1.0"
 	"Rsat.RemoteAccess.Management.Tools~~~~0.0.1.0"
 	"Rsat.ServerManager.Tools~~~~0.0.1.0"
-	"Rsat.Shielded.VM.Tools~~~~0.0.1.0"
 	"Rsat.StorageMigrationService.Management.Tools~~~~0.0.1.0"
 	"Rsat.VolumeActivation.Tools~~~~0.0.1.0"
 )
